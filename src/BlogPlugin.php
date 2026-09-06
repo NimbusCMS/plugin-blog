@@ -37,6 +37,14 @@ final class BlogPlugin implements Plugin
 
     public function register(PluginContext $context): void
     {
+        // Syndication storage (ADR 0005) and its capability (ADR 0015 wildcard-immune,
+        // ADR 0030 fine-grained): pushing a post to an external platform is a real
+        // publish, so it gets its own action `nimbuscms.blog:syndicate` that a content
+        // wildcard can never reach. The admin action and MCP tool that use it land in
+        // slice 2; the table and grantable capability are set up here.
+        $context->migrations()->register('001_syndication', Schema::all());
+        $context->capabilities()->declare('Blog', ['syndicate']);
+
         // Per-post SEO head — the reason this is a plugin. Emits nothing off blog pages.
         $context->head()->register(new BlogHead(self::COLLECTION));
 

@@ -88,6 +88,24 @@ final class SyndicatorTest extends TestCase
         }
     }
 
+    public function test_share_links_point_at_the_self_canonical(): void
+    {
+        $links = $this->make(new FakeTarget(), new FakeStore())->shareLinks('hello');
+        self::assertSame(['hn', 'reddit'], array_column($links, 'id'));
+        self::assertStringContainsString('u=https%3A%2F%2Fdanmat.dev%2Fblog%2Fhello', $links[0]['url']);
+    }
+
+    public function test_share_links_honour_a_declared_canonical(): void
+    {
+        $links = $this->make(new FakeTarget(), new FakeStore(), ['canonical_url' => 'https://elsewhere.dev/x'])->shareLinks('hello');
+        self::assertStringContainsString('url=https%3A%2F%2Felsewhere.dev%2Fx', $links[1]['url']);
+    }
+
+    public function test_share_links_are_empty_for_a_missing_post(): void
+    {
+        self::assertSame([], $this->make(new FakeTarget(), new FakeStore())->shareLinks('nope'));
+    }
+
     public function test_status_for_lists_records(): void
     {
         $s = new FakeStore();

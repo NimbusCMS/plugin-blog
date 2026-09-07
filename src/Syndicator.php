@@ -85,6 +85,25 @@ final class Syndicator
     }
 
     /**
+     * Prefilled aggregator submit links for a post (Hacker News, Reddit): the human
+     * clicks and submits, nothing is stored and no credential is used. The link points
+     * at the post's true canonical (its declared original if it has one, else self),
+     * matching the etiquette of not submitting a syndicated copy. Empty if no such
+     * published post.
+     *
+     * @return list<array{id:string,label:string,url:string}>
+     */
+    public function shareLinks(string $slug): array
+    {
+        $post = ($this->fetchBySlug)($slug);
+        if ($post === null) {
+            return [];
+        }
+        $fields = is_array($post['fields'] ?? null) ? $post['fields'] : [];
+        return ShareLinks::for((string) ($post['title'] ?? ''), $this->canonical($post, $fields));
+    }
+
+    /**
      * @param array<string,mixed> $post
      * @return array{title:string,body:string,tags:list<string>,canonical:string}
      */

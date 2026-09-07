@@ -49,7 +49,7 @@ final class BlogToolset extends PluginToolset
             new PluginTool(
                 'syndication_status',
                 'syndicate',
-                'Where a published blog post has been syndicated, and to what URLs.',
+                'Where a published blog post has been syndicated and to what URLs, plus prefilled "share" links (Hacker News, Reddit) a human can open to submit it (these are not auto-posted).',
                 [
                     'type'       => 'object',
                     'required'   => ['slug'],
@@ -80,10 +80,12 @@ final class BlogToolset extends PluginToolset
      */
     private function syndicationStatus(array $a, TokenPrincipal $p, EntryOpContext $c): array
     {
-        $status = $this->syndicator->statusFor($this->str($a, 'slug'));
+        $slug   = $this->str($a, 'slug');
+        $status = $this->syndicator->statusFor($slug);
         if ($status === null) {
             return ToolResult::error('No published post with that slug.', 'not_found');
         }
+        $status['share'] = $this->syndicator->shareLinks($slug);
         return ToolResult::ok($status);
     }
 

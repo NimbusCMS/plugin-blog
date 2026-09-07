@@ -87,6 +87,17 @@ final class BlogPlugin implements Plugin
         // One Syndicator behind two surfaces: a capability-gated admin page and the
         // MCP toolset, both on nimbuscms.blog:syndicate. Target credentials are read
         // from server env only; the reader is published-only (ADR 0029).
+        // Inline SVG diagrams don't survive Dev.to/Hashnode (they sanitise raw HTML and
+        // reject inline SVG), so the outgoing body has each <svg> rendered to a hosted
+        // PNG and swapped for a markdown image. Content-addressed under the site's
+        // uploads dir, so a diagram renders once and re-syndication reuses it; a render
+        // failure degrades to a canonical pointer, never a failed cross-post. The stored
+        // post keeps its inline SVG untouched.
+        $diagrams = new DiagramInliner(
+            new SvgRasterizer(),
+            new UploadsDiagramStore(Config::uploadPath(), Config::uploadUrl(), Config::appUrl(), self::ID),
+        );
+
         $syndicator = new Syndicator(
             [
                 'devto'    => new DevToTarget(new CurlHttpClient(), Env::get('DEVTO_API_KEY')),
@@ -96,6 +107,7 @@ final class BlogPlugin implements Plugin
             static fn (string $slug): ?array => $context->content()->entryBySlug(self::COLLECTION, $slug),
             Config::appUrl(),
             '/' . self::COLLECTION,
+            static fn (string $body, string $canonical): string => $diagrams->inline($body, $canonical),
         );
 
         // The agent surface (ADR 0016) — same service, same capability.

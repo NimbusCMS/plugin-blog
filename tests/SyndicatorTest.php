@@ -88,6 +88,26 @@ final class SyndicatorTest extends TestCase
         }
     }
 
+    public function test_the_body_transform_is_applied_to_the_outgoing_payload(): void
+    {
+        $t = new FakeTarget();
+        // The transform receives the raw body + canonical and rewrites the body sent out.
+        $syndicator = new Syndicator(
+            ['devto' => $t],
+            new FakeStore(),
+            static fn (string $s): ?array => $s === 'hello'
+                ? ['id' => 7, 'slug' => 'hello', 'title' => 'Hello', 'fields' => ['body' => 'raw <svg></svg>', 'tags' => '', 'canonical_url' => '']]
+                : null,
+            'https://danmat.dev',
+            '/blog',
+            static fn (string $body, string $canonical): string => 'TRANSFORMED for ' . $canonical,
+        );
+
+        $syndicator->syndicate('hello', 'devto', 'now');
+        self::assertNotNull($t->lastCall);
+        self::assertSame('TRANSFORMED for https://danmat.dev/blog/hello', $t->lastCall['post']['body']);
+    }
+
     public function test_share_links_point_at_the_self_canonical(): void
     {
         $links = $this->make(new FakeTarget(), new FakeStore())->shareLinks('hello');

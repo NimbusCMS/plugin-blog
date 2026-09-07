@@ -69,6 +69,25 @@ configured* in the admin and returns a clean "not configured" over MCP.
 Set the env for whichever targets you want, grant a role or token
 `nimbuscms.blog:syndicate`, and the target appears on the Syndication page.
 
+### Diagrams (inline SVG)
+
+Dev.to and Hashnode sanitise raw HTML and reject inline `<svg>`, so a post whose body
+has inline SVG diagrams would fail (Dev.to answers `403`) or lose the figure. Before a
+post is sent, each inline `<svg>` is rendered to a PNG, hosted on this site, and
+swapped for a normal markdown image, so the diagram shows on the cross-post. The
+stored post keeps its inline SVG unchanged; only the outgoing copy is transformed.
+
+- Rendering uses **`rsvg-convert`** (the `librsvg2-bin` package), with a base font
+  package (e.g. `fonts-dejavu-core`) so diagram text renders. If `rsvg-convert` is not
+  installed, or a diagram cannot be rendered, that diagram degrades to a short pointer
+  to the canonical original rather than failing the cross-post.
+- Diagrams render onto a solid light background with a dark ink for `currentColor`, so
+  a `currentColor`-based diagram is legible on any platform theme.
+- Images are content-addressed under `uploads/nimbuscms.blog/diagrams/`, so a diagram
+  renders once and re-syndication reuses it. No database table, nothing to migrate.
+- The SVG is treated as untrusted: scripts, event handlers, `foreignObject`, a
+  DOCTYPE/entity, and any external reference are refused (that diagram falls back).
+
 ### Share links (Hacker News, Reddit)
 
 Hacker News and Reddit are link-submission communities, not blogs, so the plugin

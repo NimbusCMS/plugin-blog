@@ -90,6 +90,9 @@ final class HashnodeTarget implements SyndicationTarget
             'Accept'        => 'application/json',
         ], $body);
 
+        if ($resp['status'] === 403) {
+            throw new SyndicationError('Hashnode rejected the request (HTTP 403), likely raw HTML or SVG in the post, or a token without Pro access.');
+        }
         if ($resp['status'] < 200 || $resp['status'] >= 300) {
             throw new SyndicationError('Hashnode returned HTTP ' . $resp['status'] . '.');
         }

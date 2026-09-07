@@ -60,6 +60,9 @@ final class DevToTarget implements SyndicationTarget
             $body,
         );
 
+        if ($resp['status'] === 403) {
+            throw new SyndicationError('Dev.to rejected the article body (HTTP 403), likely raw HTML or SVG in the post.');
+        }
         if ($resp['status'] < 200 || $resp['status'] >= 300) {
             throw new SyndicationError('Dev.to returned HTTP ' . $resp['status'] . '.');
         }

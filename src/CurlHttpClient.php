@@ -11,8 +11,10 @@ namespace NimbusCMS\Blog;
  */
 final class CurlHttpClient implements HttpClient
 {
-    public function __construct(private int $timeoutSeconds = 15)
-    {
+    public function __construct(
+        private int $timeoutSeconds = 15,
+        private string $userAgent = 'NimbusCMS-Blog/1.0 (+https://nimbuscms.dev)',
+    ) {
     }
 
     public function send(string $method, string $url, array $headers, ?string $body): array
@@ -31,6 +33,10 @@ final class CurlHttpClient implements HttpClient
             CURLOPT_HTTPHEADER     => $headerLines,
             CURLOPT_TIMEOUT        => $this->timeoutSeconds,
             CURLOPT_CONNECTTIMEOUT => $this->timeoutSeconds,
+            // A User-Agent is required: PHP's curl sends none by default, and some
+            // platform edges (e.g. Dev.to's Varnish) answer a no-UA request with an
+            // empty-bodied 403 before it ever reaches the API.
+            CURLOPT_USERAGENT      => $this->userAgent,
         ]);
         if ($body !== null) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, $body);

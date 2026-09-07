@@ -44,7 +44,7 @@ final class SyndicationAdmin
         foreach ($targets as $target) {
             $html .= '<th>' . self::e($target->label()) . '</th>';
         }
-        $html .= '</tr></thead><tbody>';
+        $html .= '<th>Share</th></tr></thead><tbody>';
 
         foreach ($posts as $post) {
             $slug    = (string) $post['slug'];
@@ -57,10 +57,25 @@ final class SyndicationAdmin
             foreach ($targets as $target) {
                 $html .= '<td>' . $this->cell($target, $slug, $records[$target->id()] ?? null, $csrf) . '</td>';
             }
+            $html .= '<td>' . $this->shareCell($slug) . '</td>';
             $html .= '</tr>';
         }
 
-        return $html . '</tbody></table>';
+        return $html . '</tbody></table>'
+            . '<p class="nb-muted rz-foot">Auto-post targets publish through their API and set the canonical back here. <b>Share</b> opens the community\'s own submit form with the link and title pre-filled — you pick where it goes and post it yourself (nothing is stored). If a link was already submitted, Hacker News opens the existing thread rather than making a duplicate; that\'s expected.</p>';
+    }
+
+    /**
+     * The aggregator share links for a post — each opens a prefilled submit form in a
+     * new tab for the human to review and post. Not an auto-post, so no button/action.
+     */
+    private function shareCell(string $slug): string
+    {
+        $out = '';
+        foreach ($this->syndicator->shareLinks($slug) as $link) {
+            $out .= '<a class="rz-syn-link" href="' . self::e($link['url']) . '" target="_blank" rel="noopener nofollow">' . self::e($link['label']) . '</a>';
+        }
+        return $out;
     }
 
     /**
@@ -97,6 +112,9 @@ final class SyndicationAdmin
             . '.rz-syn-form{display:inline}'
             . '.rz-syn-link{margin-left:.5rem;font-size:.85rem}'
             . '.rz-syn-err{margin-left:.5rem;font-size:.8rem;color:#c0392b}'
+            . '.rz-table td:last-child .rz-syn-link:first-child{margin-left:0}'
+            . '.rz-table td:last-child{white-space:nowrap}'
+            . '.rz-foot{max-width:70ch;margin-top:1rem;font-size:.85rem}'
             . '</style>';
     }
 

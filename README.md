@@ -68,8 +68,18 @@ configured* in the admin and returns a clean "not configured" over MCP.
 
 Set the env for whichever targets you want, grant a role or token
 `nimbuscms.blog:syndicate`, and the target appears on the Syndication page.
-Hacker News and Reddit are aggregators, not blogs — they arrive in a later slice as
-prefilled **share links** (a human clicks), never an auto-post.
+
+### Share links (Hacker News, Reddit)
+
+Hacker News and Reddit are link-submission communities, not blogs, so the plugin
+does **not** auto-post to them — the Syndication page shows a **Share** column with a
+prefilled link per post that opens the community's own submit form (URL + title
+filled in) in a new tab, for you to review and submit. No credential, no stored
+state, no outbound call — just a shortcut past copy-pasting. (Hacker News has no
+submit API at all; if a link was already submitted it opens the existing thread
+rather than duplicating.) The same links are returned by the `blog_syndication_status`
+MCP tool, so an agent can hand them to a human. API auto-submit for Reddit is a
+separate, opt-in conversation (see `docs/DESIGN-syndication.md`).
 
 ## Install
 

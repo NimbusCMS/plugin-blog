@@ -5,71 +5,8 @@ declare(strict_types=1);
 namespace NimbusCMS\Blog\Tests;
 
 use NimbusCMS\Blog\SyndicationError;
-use NimbusCMS\Blog\SyndicationStore;
-use NimbusCMS\Blog\SyndicationTarget;
 use NimbusCMS\Blog\Syndicator;
 use PHPUnit\Framework\TestCase;
-
-/** A fake target that records its last call and can be told to fail. */
-final class FakeTarget implements SyndicationTarget
-{
-    /** @var array{post:array<string,mixed>,externalId:?string}|null */
-    public ?array $lastCall = null;
-    public bool $throw = false;
-
-    public function id(): string
-    {
-        return 'devto';
-    }
-
-    public function label(): string
-    {
-        return 'Dev.to';
-    }
-
-    public function isConfigured(): bool
-    {
-        return true;
-    }
-
-    public function push(array $post, ?string $externalId): array
-    {
-        $this->lastCall = ['post' => $post, 'externalId' => $externalId];
-        if ($this->throw) {
-            throw new SyndicationError('boom');
-        }
-        return ['external_id' => '42', 'external_url' => 'https://dev.to/dan/hello-42'];
-    }
-}
-
-/** An in-memory {@see SyndicationStore}. */
-final class FakeStore implements SyndicationStore
-{
-    /** @var array<string,array{external_id:?string,external_url:?string,status:string}> */
-    public array $rows = [];
-
-    public function get(int $entryId, string $target): ?array
-    {
-        return $this->rows[$entryId . ':' . $target] ?? null;
-    }
-
-    public function record(int $entryId, string $target, ?string $externalId, string $externalUrl, string $status, string $now): void
-    {
-        $this->rows[$entryId . ':' . $target] = ['external_id' => $externalId, 'external_url' => $externalUrl, 'status' => $status];
-    }
-
-    public function forEntry(int $entryId): array
-    {
-        $out = [];
-        foreach ($this->rows as $key => $row) {
-            [$e, $t] = explode(':', $key, 2);
-            if ((int) $e === $entryId) {
-                $out[] = ['target' => $t, 'external_id' => $row['external_id'], 'external_url' => $row['external_url'], 'status' => $row['status'], 'synced_at' => '2026-01-01 00:00:00'];
-            }
-        }
-        return $out;
-    }
-}
 
 /**
  * The Syndicator: canonical computation (self vs a declared original), create vs

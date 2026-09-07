@@ -8,8 +8,10 @@ use Nimbus\Http\Request;
 use Nimbus\Http\Response;
 use Nimbus\Plugin\Plugin;
 use Nimbus\Plugin\PluginContext;
+use Nimbus\Plugin\PluginStorage;
 use Nimbus\Site\PageView;
 use Nimbus\Support\Config;
+use Nimbus\Support\Env;
 
 /**
  * The official Blog plugin — turns a plain `blog` collection into a real blog:
@@ -80,6 +82,41 @@ final class BlogPlugin implements Plugin
                 'base'  => '/' . self::COLLECTION,
             ], ['title' => 'Tagged: ' . $name]);
         }, __DIR__ . '/../templates');
+
+        // --- Syndication (cross-post to dev platforms) ----------------------
+        // One Syndicator behind two surfaces: a capability-gated admin page and the
+        // MCP toolset, both on nimbuscms.blog:syndicate. Target credentials are read
+        // from server env only; the reader is published-only (ADR 0029).
+        $syndicator = new Syndicator(
+            ['devto' => new DevToTarget(new CurlHttpClient(), Env::get('DEVTO_API_KEY'))],
+            new SyndicationRepository(static fn (): PluginStorage => $context->storage()),
+            static fn (string $slug): ?array => $context->content()->entryBySlug(self::COLLECTION, $slug),
+            Config::appUrl(),
+            '/' . self::COLLECTION,
+        );
+
+        // The agent surface (ADR 0016) — same service, same capability.
+        $context->mcp()->register(new BlogToolset($syndicator));
+
+        // The admin surface (ADR 0020) — a Syndication page with a button per post
+        // per target; the push action inherits the page's capability and CSRF.
+        $context->adminPages()->register(
+            'blog-syndication',
+            'Syndication',
+            '📣',
+            static fn (Request $r, string $nonce = '', string $csrf = ''): string => (new SyndicationAdmin($syndicator, $posts()))->render($csrf, $r->query('ok') ?? $r->query('err'), $nonce),
+            self::ID . ':syndicate',
+        );
+        $context->adminPages()->action('blog-syndication', 'push', static function (Request $r) use ($syndicator): Response {
+            $slug   = (string) ($r->input('slug') ?? '');
+            $target = (string) ($r->input('target') ?? '');
+            try {
+                $result = $syndicator->syndicate($slug, $target, date('Y-m-d H:i:s'));
+                return Response::redirect('/admin/blog-syndication?ok=' . rawurlencode('Syndicated to ' . $result['target'] . '.'));
+            } catch (SyndicationError $e) {
+                return Response::redirect('/admin/blog-syndication?err=' . rawurlencode($e->getMessage()));
+            }
+        });
 
         // Agent-facing reference (ADR 0013).
         $context->skills()->register('Blog', Guide::text());

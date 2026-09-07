@@ -76,11 +76,15 @@ final class HashnodeTargetTest extends TestCase
         $this->target(new FakeHttpClient(500, ''))->push($this->post(), null);
     }
 
-    public function test_a_403_is_translated_to_a_clear_message(): void
+    public function test_a_403_message_is_open_about_the_cause_and_surfaces_the_response(): void
     {
-        $this->expectException(SyndicationError::class);
-        $this->expectExceptionMessage('raw HTML or SVG');
-        $this->target(new FakeHttpClient(403, ''))->push($this->post(), null);
+        try {
+            $this->target(new FakeHttpClient(403, '{"message":"forbidden detail"}'))->push($this->post(), null);
+            self::fail('expected a SyndicationError');
+        } catch (SyndicationError $e) {
+            self::assertStringContainsString('HTTP 403', $e->getMessage());
+            self::assertStringContainsString('forbidden detail', $e->getMessage(), 'raw response is surfaced');
+        }
     }
 
     public function test_unconfigured_without_a_publication_reports_and_refuses(): void

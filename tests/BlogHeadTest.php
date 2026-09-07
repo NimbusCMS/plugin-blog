@@ -64,12 +64,39 @@ final class BlogHeadTest extends TestCase
         self::assertStringContainsString('"datePublished":"2026-01-02T', $html);
     }
 
-    public function test_a_cover_gives_a_large_image_card(): void
+    public function test_a_media_object_cover_gives_a_large_image_card(): void
     {
         $html = $this->head->head($this->post('', ['summary' => 's', 'cover' => ['url' => '/uploads/c.jpg', 'alt' => 'c']]));
         self::assertStringContainsString('name="twitter:card" content="summary_large_image"', $html);
         self::assertStringContainsString('og:image', $html);
         self::assertStringContainsString('/uploads/c.jpg', $html);
+    }
+
+    public function test_a_cover_url_string_is_used_as_the_image(): void
+    {
+        // A text-typed `cover` holding an absolute image URL (how danmat models it).
+        $html = $this->head->head($this->post('', ['summary' => 's', 'cover' => 'https://danmat.dev/img/plates/aegis-03.jpg']));
+        self::assertStringContainsString('name="twitter:card" content="summary_large_image"', $html);
+        self::assertStringContainsString('property="og:image" content="https://danmat.dev/img/plates/aegis-03.jpg"', $html);
+        self::assertStringContainsString('name="twitter:image" content="https://danmat.dev/img/plates/aegis-03.jpg"', $html);
+        self::assertStringContainsString('"image":"https://danmat.dev/img/plates/aegis-03.jpg"', $html);
+    }
+
+    public function test_a_site_relative_cover_string_is_absolutised(): void
+    {
+        // Absolutised against the site origin (Config::appUrl()), not left relative.
+        $html = $this->head->head($this->post('', ['summary' => 's', 'cover' => '/theme/img/c.jpg']));
+        self::assertMatchesRegularExpression('#property="og:image" content="https?://[^"]+/theme/img/c\.jpg"#', $html);
+        self::assertStringNotContainsString('content="/theme/img/c.jpg"', $html);
+    }
+
+    public function test_an_unsafe_cover_string_yields_no_image(): void
+    {
+        foreach (['javascript:alert(1)', 'data:image/png;base64,AAAA', '//evil.example/x.jpg', '42'] as $bad) {
+            $html = $this->head->head($this->post('', ['summary' => 's', 'cover' => $bad]));
+            self::assertStringNotContainsString('og:image', $html, "cover '$bad' must not become an image");
+            self::assertStringContainsString('name="twitter:card" content="summary"', $html, "cover '$bad' → plain card");
+        }
     }
 
     public function test_a_declared_canonical_url_points_away_from_self(): void

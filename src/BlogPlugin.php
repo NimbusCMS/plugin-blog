@@ -88,7 +88,10 @@ final class BlogPlugin implements Plugin
         // MCP toolset, both on nimbuscms.blog:syndicate. Target credentials are read
         // from server env only; the reader is published-only (ADR 0029).
         $syndicator = new Syndicator(
-            ['devto' => new DevToTarget(new CurlHttpClient(), Env::get('DEVTO_API_KEY'))],
+            [
+                'devto'    => new DevToTarget(new CurlHttpClient(), Env::get('DEVTO_API_KEY')),
+                'hashnode' => new HashnodeTarget(new CurlHttpClient(), Env::get('HASHNODE_TOKEN'), Env::get('HASHNODE_PUBLICATION_ID')),
+            ],
             new SyndicationRepository(static fn (): PluginStorage => $context->storage()),
             static fn (string $slug): ?array => $context->content()->entryBySlug(self::COLLECTION, $slug),
             Config::appUrl(),

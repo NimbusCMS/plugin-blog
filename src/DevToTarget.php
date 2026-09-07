@@ -60,11 +60,12 @@ final class DevToTarget implements SyndicationTarget
             $body,
         );
 
-        if ($resp['status'] === 403) {
-            throw new SyndicationError('Dev.to rejected the article body (HTTP 403), likely raw HTML or SVG in the post.');
-        }
         if ($resp['status'] < 200 || $resp['status'] >= 300) {
-            throw new SyndicationError('Dev.to returned HTTP ' . $resp['status'] . '.');
+            $hint = $resp['status'] === 403
+                ? 'Dev.to rejected the request (HTTP 403), likely raw HTML/SVG in the post, or a key/permissions issue.'
+                : 'Dev.to returned HTTP ' . $resp['status'] . '.';
+            $detail = $this->snippet($resp['body']);
+            throw new SyndicationError($detail === '' ? $hint : $hint . ' Response: ' . $detail);
         }
         $data = json_decode($resp['body'], true);
         $data = is_array($data) ? $data : [];
@@ -73,6 +74,13 @@ final class DevToTarget implements SyndicationTarget
             'external_id'  => (string) ($data['id'] ?? $externalId ?? ''),
             'external_url' => (string) ($data['url'] ?? ''),
         ];
+    }
+
+    /** A one-line, length-capped slice of the platform's response, for a diagnosable error. */
+    private function snippet(string $body): string
+    {
+        $body = trim((string) preg_replace('/\s+/', ' ', $body));
+        return mb_strlen($body) > 300 ? mb_substr($body, 0, 297) . '...' : $body;
     }
 
     /**

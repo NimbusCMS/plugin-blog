@@ -52,13 +52,18 @@ final class DevToTargetTest extends TestCase
         (new DevToTarget(new FakeHttpClient(422, '{"error":"nope"}'), 'k'))->push($this->post(), null);
     }
 
-    public function test_a_403_is_translated_to_a_body_rejection_message(): void
+    public function test_a_403_message_is_open_about_the_cause_and_surfaces_the_response(): void
     {
-        // Forem answers 403 when it rejects the body (e.g. raw HTML/SVG); the message
-        // must point there, not at the API key.
-        $this->expectException(SyndicationError::class);
-        $this->expectExceptionMessage('raw HTML or SVG');
-        (new DevToTarget(new FakeHttpClient(403, '{}'), 'k'))->push($this->post(), null);
+        // A 403 is not necessarily the body: it may be a key/permissions issue. The
+        // message must say so, and carry the raw platform response so it is diagnosable.
+        try {
+            (new DevToTarget(new FakeHttpClient(403, '{"error":"you are not allowed"}'), 'k'))->push($this->post(), null);
+            self::fail('expected a SyndicationError');
+        } catch (SyndicationError $e) {
+            self::assertStringContainsString('HTTP 403', $e->getMessage());
+            self::assertStringContainsString('key/permissions', $e->getMessage());
+            self::assertStringContainsString('you are not allowed', $e->getMessage(), 'raw response is surfaced');
+        }
     }
 
     public function test_unconfigured_reports_and_refuses(): void

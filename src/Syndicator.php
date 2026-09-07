@@ -17,9 +17,14 @@ namespace NimbusCMS\Blog;
  */
 final class Syndicator
 {
+    /** @var \Closure(string,string):string body transform for the outgoing copy (body, canonical) */
+    private \Closure $transformBody;
+
     /**
      * @param array<string,SyndicationTarget> $targets    keyed by target id
      * @param \Closure(string):(array<string,mixed>|null) $fetchBySlug published post view-model, or null
+     * @param ?\Closure(string,string):string $transformBody rewrite the body sent to a target (e.g. inline
+     *        diagrams); receives (body, canonical) and returns the outgoing body. Identity if omitted.
      */
     public function __construct(
         private array $targets,
@@ -27,7 +32,9 @@ final class Syndicator
         private \Closure $fetchBySlug,
         private string $siteUrl,
         private string $basePath = '/blog',
+        ?\Closure $transformBody = null,
     ) {
+        $this->transformBody = $transformBody ?? static fn (string $body, string $canonical): string => $body;
     }
 
     /** @return list<SyndicationTarget> */
@@ -109,12 +116,13 @@ final class Syndicator
      */
     private function payload(array $post): array
     {
-        $fields = is_array($post['fields'] ?? null) ? $post['fields'] : [];
+        $fields    = is_array($post['fields'] ?? null) ? $post['fields'] : [];
+        $canonical = $this->canonical($post, $fields);
         return [
             'title'     => (string) ($post['title'] ?? ''),
-            'body'      => (string) ($fields['body'] ?? ''),
+            'body'      => ($this->transformBody)((string) ($fields['body'] ?? ''), $canonical),
             'tags'      => $this->tags((string) ($fields['tags'] ?? '')),
-            'canonical' => $this->canonical($post, $fields),
+            'canonical' => $canonical,
         ];
     }
 

@@ -76,6 +76,13 @@ final class HashnodeTargetTest extends TestCase
         $this->target(new FakeHttpClient(500, ''))->push($this->post(), null);
     }
 
+    public function test_a_403_is_translated_to_a_clear_message(): void
+    {
+        $this->expectException(SyndicationError::class);
+        $this->expectExceptionMessage('raw HTML or SVG');
+        $this->target(new FakeHttpClient(403, ''))->push($this->post(), null);
+    }
+
     public function test_unconfigured_without_a_publication_reports_and_refuses(): void
     {
         $target = new HashnodeTarget(new FakeHttpClient(200, '{}'), 'tok', null);

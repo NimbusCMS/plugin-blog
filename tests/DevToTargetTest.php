@@ -52,6 +52,15 @@ final class DevToTargetTest extends TestCase
         (new DevToTarget(new FakeHttpClient(422, '{"error":"nope"}'), 'k'))->push($this->post(), null);
     }
 
+    public function test_a_403_is_translated_to_a_body_rejection_message(): void
+    {
+        // Forem answers 403 when it rejects the body (e.g. raw HTML/SVG); the message
+        // must point there, not at the API key.
+        $this->expectException(SyndicationError::class);
+        $this->expectExceptionMessage('raw HTML or SVG');
+        (new DevToTarget(new FakeHttpClient(403, '{}'), 'k'))->push($this->post(), null);
+    }
+
     public function test_unconfigured_reports_and_refuses(): void
     {
         $target = new DevToTarget(new FakeHttpClient(200, '{}'), null);

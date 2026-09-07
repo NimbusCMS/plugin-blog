@@ -34,7 +34,11 @@ final class Guide
             - `body` — the post, in markdown. The theme renders it; inline `<svg>…</svg>`
               diagrams are allowed **in the body** (bare SVG only — no `<script>`,
               no `on*=` handlers, no `<foreignObject>`; anything else is shown as text).
-            - `cover` — a same-origin image (a media id); used as the OG/Twitter image.
+            - `cover` — the post's image, used for the OG/Twitter/JSON-LD preview.
+              Either a **media** field (a media id, resolved to its URL) or a **text**
+              field holding an image URL (absolute `https://…` or site-relative `/…`);
+              a `javascript:`/`data:`/protocol-relative value is ignored. Without a
+              usable cover the post gets a plain summary card.
             - `tags` — comma-separated; each becomes a `/tag/{tag}` archive.
             - `canonical_url` — set this **only when the post first appeared somewhere
               else** (e.g. cross-posted to Dev.to) and this site is not the original;

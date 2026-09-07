@@ -57,7 +57,7 @@ final class BlogHead implements HeadContributor
         $title     = (string) ($entry['title'] ?? $page->title);
         $summary   = trim((string) ($fields['summary'] ?? ''));
         $published = (string) ($entry['published_at'] ?? '');
-        $cover     = is_array($fields['cover'] ?? null) ? $this->absolute((string) ($fields['cover']['url'] ?? ''), $siteUrl) : '';
+        $cover     = $this->coverUrl($fields, $siteUrl);
         $declared  = $this->safeUrl((string) ($fields['canonical_url'] ?? ''));
         $canonical = $declared ?? $page->canonical; // self unless the post declares one
 
@@ -137,16 +137,33 @@ final class BlogHead implements HeadContributor
         return '<script type="application/ld+json" nonce="' . View::e($nonce) . '">' . ($json !== false ? $json : '{}') . '</script>';
     }
 
-    /** Absolute-ise a site-relative URL against the site origin; pass an http(s) URL through. */
-    private function absolute(string $url, string $siteUrl): string
+    /**
+     * The post's cover image URL for OG/Twitter/JSON-LD, from either shape a `cover`
+     * field can take: a **media**-typed field (core resolves it to `{url, ...}`) or a
+     * **text**-typed field holding an image URL. In both cases the URL must be an
+     * http(s) absolute or a site-relative `/path`; anything else (a `javascript:` or
+     * `data:` string, a protocol-relative `//host`, a bare id) yields no image, so a
+     * mis-modelled cover degrades to a plain summary card rather than a bad tag.
+     *
+     * @param array<string,mixed> $fields
+     */
+    private function coverUrl(array $fields, string $siteUrl): string
     {
-        if ($url === '') {
+        $cover = $fields['cover'] ?? null;
+        if (is_array($cover)) {
+            $cover = (string) ($cover['url'] ?? '');
+        }
+        if (!is_string($cover)) {
             return '';
         }
-        if (preg_match('#^https?://#i', $url) === 1) {
-            return $url;
+        $cover = trim($cover);
+        if (preg_match('#^https?://[^\s"<>]+$#i', $cover) === 1) {
+            return $cover;
         }
-        return $siteUrl . '/' . ltrim($url, '/');
+        if ($cover !== '' && $cover[0] === '/' && ($cover[1] ?? '') !== '/') {
+            return $siteUrl . $cover;
+        }
+        return '';
     }
 
     /** An author-declared canonical is used only if it is a plain http(s) absolute URL. */

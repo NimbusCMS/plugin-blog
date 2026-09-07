@@ -35,7 +35,7 @@ Create it as normal content (e.g. over MCP) with these fields:
 |-------|------|---------|
 | `summary` | textarea | list blurb + meta/OG/JSON-LD description |
 | `body` | textarea (markdown) | the post; the theme may allow inline `<svg>` diagrams |
-| `cover` | media | OG/Twitter image (same-origin) |
+| `cover` | media *or* text | OG/Twitter/JSON-LD image — a `media` reference (resolved to its URL) **or** a `text` field holding an image URL (absolute `https://…` or site-relative `/…`). |
 | `tags` | text | comma-separated; each becomes a `/tag/{tag}` archive |
 | `canonical_url` | text | set only for a cross-post that originated elsewhere; empty = self-canonical |
 
